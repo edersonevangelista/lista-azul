@@ -16,6 +16,7 @@ const logoutButton = $("#logout-button"), syncStatus = $("#sync-status");
 const panels = {toBuy:$("#panel-toBuy"),inCart:$("#panel-inCart"),catalog:$("#panel-catalog")};
 const navItems = [...document.querySelectorAll(".nav-item")];
 const toast = $("#toast"), dialog = $("#confirm-dialog");
+const productForm = $("#product-form"), newProductName = $("#new-product-name"), addProductButton = $("#add-product-button");
 let supabase = null, user = null, householdId = null, state = null, currentTab = "toBuy";
 let realtimeChannel = null, toastTimer = null, isSignUp = false, writeQueue = Promise.resolve();
 
@@ -61,6 +62,20 @@ function row(product, button) {
   const name=document.createElement("span"); name.className="product-name"; name.textContent=product.name;
   li.append(name,button); return li;
 }
+function sortCatalog(catalog) {
+  const collator = new Intl.Collator("pt-BR", { sensitivity: "base", numeric: true });
+  return [...catalog].sort((a, b) => collator.compare(a.name.trim(), b.name.trim()));
+}
+function normalizeProductName(name) {
+  return name.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+}
+function makeProductId(name) {
+  const base = normalizeProductName(name).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "produto";
+  let id = base, suffix = 2;
+  const ids = new Set(state.catalog.map(p => p.id));
+  while (ids.has(id)) id = `${base}-${suffix++}`;
+  return id;
+}
 function active(id) {
   return state.toBuy.some(p=>p.id===id) || state.inCart.some(p=>p.id===id);
 }
@@ -73,6 +88,7 @@ function render() {
     const r=row(p,makeButton("Devolver","return-button",`Devolver ${p.name}`,()=>returnToBuy(p.id)));
     cartList.append(r);
   });
+  state.catalog = sortCatalog(state.catalog);
   state.catalog.forEach(p => {
     const exists=active(p.id);
     catalogList.append(row(p,makeButton(exists?"✓":"+","add-button",exists?`${p.name} já está em uma lista ativa`:`Adicionar ${p.name}`,()=>addToBuy(p.id),exists)));
@@ -88,7 +104,7 @@ function render() {
 }
 function normalize(s) {
   if (!s || !Array.isArray(s.catalog) || !Array.isArray(s.toBuy) || !Array.isArray(s.inCart)) return null;
-  const catalog=s.catalog.filter(p=>p && typeof p.id==="string" && typeof p.name==="string");
+  const catalog=sortCatalog(s.catalog.filter(p=>p && typeof p.id==="string" && typeof p.name==="string" && p.name.trim()).map(p=>({id:p.id,name:p.name.trim()})));
   const ids=new Set(catalog.map(p=>p.id)), seen=new Set();
   const clean=list=>list.filter(p=>{
     if (!p || !ids.has(p.id) || seen.has(p.id)) return false;
@@ -112,13 +128,18 @@ async function loadSharedState() {
 }
 async function saveSharedState() {
   const snapshot=JSON.parse(JSON.stringify(state));
-  writeQueue=writeQueue.then(async()=>{
+  const operation=writeQueue.then(async()=>{
     setSync("Salvando alterações…");
     const {error}=await supabase.from("shared_lists").update({state:snapshot,updated_at:new Date().toISOString()}).eq("household_id",householdId);
-    if (error) { setSync("Falha ao sincronizar. Verifique a conexão."); showToast("Não foi possível sincronizar a alteração."); throw error; }
+    if (error) {
+      setSync("Falha ao sincronizar. Verifique a conexão.");
+      showToast("Não foi possível sincronizar a alteração.");
+      throw error;
+    }
     setSync("Lista compartilhada sincronizada",true);
-  }).catch(()=>{});
-  return writeQueue;
+  });
+  writeQueue=operation.catch(()=>{});
+  return operation;
 }
 function subscribeRealtime() {
   if (realtimeChannel) supabase.removeChannel(realtimeChannel);
@@ -130,8 +151,39 @@ function subscribeRealtime() {
 async function mutate(action, success) {
   const before=JSON.parse(JSON.stringify(state));
   action(); render();
-  try { await saveSharedState(); if(success) showToast(success); }
-  catch (_) { state=before; render(); }
+  try { await saveSharedState(); if(success) showToast(success); return true; }
+  catch (_) { state=before; render(); return false; }
+}
+async function addCatalogProduct(event) {
+  event.preventDefault();
+  if (!state) return;
+  const name = newProductName.value.trim().replace(/\s+/g, " ");
+  if (!name) {
+    showToast("Digite o nome do produto.");
+    newProductName.focus();
+    return;
+  }
+  const normalizedName = normalizeProductName(name);
+  if (state.catalog.some(p => normalizeProductName(p.name) === normalizedName)) {
+    showToast("Esse produto já está cadastrado.");
+    newProductName.focus();
+    newProductName.select();
+    return;
+  }
+  const product = { id: makeProductId(name), name };
+  addProductButton.disabled = true;
+  try {
+    const saved = await mutate(() => {
+      state.catalog.push(product);
+      state.catalog = sortCatalog(state.catalog);
+    }, `${name} cadastrado com sucesso.`);
+    if (saved) {
+      newProductName.value = "";
+      newProductName.focus();
+    }
+  } finally {
+    addProductButton.disabled = false;
+  }
 }
 function addToBuy(id) {
   const p=state.catalog.find(x=>x.id===id); if(!p) return;
@@ -204,6 +256,7 @@ authForm.addEventListener("submit",async event=>{
   finally { authSubmit.disabled=false; }
 });
 logoutButton.addEventListener("click",async()=>{if(supabase)await supabase.auth.signOut();});
+productForm.addEventListener("submit", addCatalogProduct);
 navItems.forEach(btn=>btn.addEventListener("click",()=>switchTab(btn.dataset.tab)));
 document.querySelectorAll("[data-go-tab]").forEach(btn=>btn.addEventListener("click",()=>switchTab(btn.dataset.goTab)));
 $("#finish-button").addEventListener("click",()=>{if(state?.inCart.length && dialog.showModal)dialog.showModal();});
