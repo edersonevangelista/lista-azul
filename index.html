@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1769AA">
+  <meta name="description" content="Lista de compras compartilhada.">
+  <title>Lista Azul</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand-mark" aria-hidden="true">✓</div>
+    <div class="brand-copy"><p class="eyebrow">SUA COMPRA, MAIS SIMPLES</p><h1>Lista Azul</h1></div>
+    <button id="logout-button" class="text-button" hidden>Sair</button>
+  </header>
+
+  <main id="main-content">
+    <section id="auth-view" class="auth-card">
+      <p class="eyebrow">LISTA COMPARTILHADA</p>
+      <h2 id="auth-title">Entrar na sua conta</h2>
+      <p class="section-subtitle">Entre para acessar a lista compartilhada da família.</p>
+      <form id="auth-form">
+        <label for="email">E-mail</label>
+        <input id="email" type="email" autocomplete="email" required placeholder="voce@exemplo.com">
+        <label for="password">Senha</label>
+        <input id="password" type="password" autocomplete="current-password" minlength="6" required placeholder="Mínimo de 6 caracteres">
+        <button id="auth-submit" class="button button-primary button-wide" type="submit">Entrar</button>
+      </form>
+      <button id="toggle-auth" class="link-button" type="button">Ainda não tem conta? Criar conta</button>
+      <p id="auth-message" class="form-message" role="status" aria-live="polite"></p>
+      <p class="security-note">Se o projeto Supabase exigir confirmação por e-mail, confirme o endereço antes de entrar.</p>
+    </section>
+
+    <section id="app-view" hidden>
+      <div class="sync-status" id="sync-status" role="status"><span class="status-dot"></span><span>Conectando à lista compartilhada…</span></div>
+
+      <section class="tab-panel" id="panel-toBuy" aria-labelledby="heading-toBuy">
+        <div class="section-heading">
+          <div><p class="eyebrow">SUPERMERCADO</p><h2 id="heading-toBuy">Itens a Comprar</h2><p class="section-subtitle">Marque cada produto quando colocá-lo no carrinho.</p></div>
+          <span class="count-badge" id="toBuy-count">0</span>
+        </div>
+        <ul class="product-list" id="toBuy-list"></ul>
+        <div class="empty-state" id="toBuy-empty" hidden><span class="empty-icon" aria-hidden="true">🛒</span><h3>Nenhum item pendente</h3><p>Adicione produtos pelo Cadastro para começar sua lista.</p><button class="button button-primary" data-go-tab="catalog">Abrir Cadastro</button></div>
+      </section>
+
+      <section class="tab-panel" id="panel-inCart" aria-labelledby="heading-inCart" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">COMPRA EM ANDAMENTO</p><h2 id="heading-inCart">No Carrinho</h2><p class="section-subtitle">Aqui ficam os produtos que vocês já pegaram.</p></div>
+          <span class="count-badge" id="inCart-count">0</span>
+        </div>
+        <ul class="product-list" id="inCart-list"></ul>
+        <div class="empty-state" id="inCart-empty" hidden><span class="empty-icon" aria-hidden="true">🧺</span><h3>Seu carrinho está vazio</h3><p>Os produtos marcados em “Itens a Comprar” aparecerão aqui.</p></div>
+        <div class="finish-area" id="finish-area"><p>Terminou de comprar? Isso limpa as listas ativas de todos os dispositivos conectados.</p><button id="finish-button" class="button button-primary button-wide">Concluir compra</button></div>
+      </section>
+
+      <section class="tab-panel" id="panel-catalog" aria-labelledby="heading-catalog" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">PRODUTOS FREQUENTES</p><h2 id="heading-catalog">Cadastro</h2><p class="section-subtitle">Toque no + para incluir um produto na lista.</p></div>
+          <span class="count-badge" id="catalog-count">13</span>
+        </div>
+        <div class="notice" role="note"><span aria-hidden="true">💡</span><p>As alterações aparecem nos dispositivos conectados à mesma lista compartilhada.</p></div>
+        <ul class="product-list catalog-list" id="catalog-list"></ul>
+      </section>
+
+      <nav class="bottom-nav" aria-label="Navegação principal">
+        <button class="nav-item active" data-tab="toBuy" aria-current="page"><span class="nav-icon" aria-hidden="true">☷</span><span>Itens a Comprar</span></button>
+        <button class="nav-item" data-tab="inCart"><span class="nav-icon" aria-hidden="true">🛒</span><span>No Carrinho</span></button>
+        <button class="nav-item" data-tab="catalog"><span class="nav-icon" aria-hidden="true">＋</span><span>Cadastro</span></button>
+      </nav>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog id="confirm-dialog" class="confirm-dialog">
+    <div class="dialog-icon" aria-hidden="true">✓</div><h2>Concluir compra?</h2>
+    <p>Isso vai limpar “Itens a Comprar” e “No Carrinho” para todos os dispositivos da lista compartilhada. O Cadastro será preservado.</p>
+    <div class="dialog-actions"><button id="cancel-finish" class="button button-secondary">Cancelar</button><button id="confirm-finish" class="button button-primary">Concluir</button></div>
+  </dialog>
+
+  <script src="./config.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
