@@ -58,9 +58,17 @@
 
       <section class="tab-panel" id="panel-catalog" aria-labelledby="heading-catalog" hidden>
         <div class="section-heading">
-          <div><p class="eyebrow">PRODUTOS FREQUENTES</p><h2 id="heading-catalog">Cadastro</h2><p class="section-subtitle">Toque no + para incluir um produto na lista.</p></div>
+          <div><p class="eyebrow">PRODUTOS FREQUENTES</p><h2 id="heading-catalog">Cadastro</h2><p class="section-subtitle">Cadastre produtos e toque no + para incluí-los na lista.</p></div>
           <span class="count-badge" id="catalog-count">13</span>
         </div>
+        <form id="product-form" class="product-form">
+          <label for="new-product-name">Nome do novo produto</label>
+          <div class="product-form-row">
+            <input id="new-product-name" name="productName" type="text" maxlength="80" required autocomplete="off" placeholder="Ex.: Café">
+            <button id="add-product-button" class="button button-primary" type="submit">Cadastrar</button>
+          </div>
+          <p class="form-hint">O produto será compartilhado e aparecerá em ordem alfabética.</p>
+        </form>
         <div class="notice" role="note"><span aria-hidden="true">💡</span><p>As alterações aparecem nos dispositivos conectados à mesma lista compartilhada.</p></div>
         <ul class="product-list catalog-list" id="catalog-list"></ul>
       </section>
