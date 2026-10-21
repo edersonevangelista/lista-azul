@@ -57,10 +57,10 @@ function makeButton(label, cls, aria, action, disabled=false) {
   const b=document.createElement("button"); b.type="button"; b.className=cls; b.textContent=label;
   b.setAttribute("aria-label",aria); b.disabled=disabled; b.addEventListener("click",action); return b;
 }
-function row(product, button) {
+function row(product, ...buttons) {
   const li=document.createElement("li"); li.className="product-row";
   const name=document.createElement("span"); name.className="product-name"; name.textContent=product.name;
-  li.append(name,button); return li;
+  li.append(name, ...buttons); return li;
 }
 function sortCatalog(catalog) {
   const collator = new Intl.Collator("pt-BR", { sensitivity: "base", numeric: true });
@@ -90,8 +90,21 @@ function render() {
   });
   state.catalog = sortCatalog(state.catalog);
   state.catalog.forEach(p => {
-    const exists=active(p.id);
-    catalogList.append(row(p,makeButton(exists?"✓":"+","add-button",exists?`${p.name} já está em uma lista ativa`:`Adicionar ${p.name}`,()=>addToBuy(p.id),exists)));
+    const exists = active(p.id);
+    const addButton = makeButton(
+      exists ? "✓" : "+",
+      "add-button",
+      exists ? `${p.name} já está em uma lista ativa` : `Adicionar ${p.name}`,
+      () => addToBuy(p.id),
+      exists
+    );
+    const deleteButton = makeButton(
+      "Excluir",
+      "delete-button",
+      `Excluir ${p.name} do cadastro`,
+      () => deleteCatalogProduct(p.id)
+    );
+    catalogList.append(row(p, addButton, deleteButton));
   });
   $("#toBuy-count").textContent=state.toBuy.length;
   $("#inCart-count").textContent=state.inCart.length;
@@ -154,6 +167,25 @@ async function mutate(action, success) {
   try { await saveSharedState(); if(success) showToast(success); return true; }
   catch (_) { state=before; render(); return false; }
 }
+async function deleteCatalogProduct(id) {
+  if (!state) return;
+
+  const product = state.catalog.find(p => p.id === id);
+  if (!product) return;
+
+  if (active(id)) {
+    showToast("Retire este produto das listas ativas antes de excluí-lo.");
+    return;
+  }
+
+  const confirmed = window.confirm(`Deseja excluir “${product.name}” do Cadastro compartilhado? Essa ação não pode ser desfeita.`);
+  if (!confirmed) return;
+
+  await mutate(() => {
+    state.catalog = state.catalog.filter(p => p.id !== id);
+  }, `${product.name} excluído do cadastro.`);
+}
+
 async function addCatalogProduct(event) {
   event.preventDefault();
   if (!state) return;
